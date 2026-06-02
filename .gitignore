@@ -1,0 +1,19 @@
+# Frontend temporary files
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Python virtual environment & cache
+backend/venv/
+backend/test_crimevision.db
+backend/crimevision.db
+backend/instance/
+**/__pycache__/
+**/*.pyc
+
+# Local IDE files
+.vscode/
+.idea/
+.DS_Store
+*.log
