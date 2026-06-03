@@ -1,7 +1,7 @@
 import random
 import datetime
 from app import create_app
-from models import db, User, Crime, Criminal, CrimeRelationship, Prediction
+from models import db, User, Crime, Criminal, CrimeRelationship, Prediction, NetworkEntity, OcrDocument
 
 # Bounding boxes for Karnataka districts
 DISTRICTS_GEO = {
@@ -266,6 +266,68 @@ def generate_db():
             db.session.add(pred)
         db.session.commit()
         
+        # 6. Populate Network Entities
+        print("Populating advanced criminal entity nodes (Phones, Vehicles, Bank Accounts, Addresses)...")
+        areas = ['Koramangala 4th Block', 'Indiranagar 80 Feet Rd', 'Jayanagar 9th Block', 'Whitefield EPIP Zone', 'Rajajinagar Main Rd', 'Hebbal Junction', 'Lashkar Circle Mysore', 'Devaraja Market Road', 'Gokul Road Hubli', 'Bunder Port Area Mangaluru']
+        banks = ['SBI', 'HDFC', 'ICICI', 'Canara Bank', 'Axis Bank']
+        entities_to_add = []
+        for crim in criminals:
+            # Phone node
+            phone_val = f"+91 9{random.randint(100, 999)}-{random.randint(100, 999)}-{random.randint(1000, 9999)}"
+            entities_to_add.append(NetworkEntity(entity_type='Phone Number', value=phone_val, criminal_owner_id=crim.criminal_id))
+            
+            # 50% chance for vehicle
+            if random.random() < 0.5:
+                veh_val = f"KA-0{random.randint(1, 9)}-{random.choice(['M', 'N', 'P', 'R', 'S'])}-{random.randint(1000, 9999)}"
+                entities_to_add.append(NetworkEntity(entity_type='Vehicle', value=veh_val, criminal_owner_id=crim.criminal_id))
+            
+            # 50% chance for bank account
+            if random.random() < 0.5:
+                bank_val = f"{random.choice(banks)} A/C {random.randint(100000, 999999)}XXXX"
+                entities_to_add.append(NetworkEntity(entity_type='Bank Account', value=bank_val, criminal_owner_id=crim.criminal_id))
+                
+            # 40% chance for address
+            if random.random() < 0.4:
+                addr_val = f"{random.randint(1, 150)}, {random.choice(areas)}"
+                entities_to_add.append(NetworkEntity(entity_type='Address', value=addr_val, criminal_owner_id=crim.criminal_id))
+                
+        db.session.bulk_save_objects(entities_to_add)
+        db.session.commit()
+        
+        # 7. Populate OCR Documents
+        print("Populating mock OCR evidence files and F.I.R. templates...")
+        import json
+        ocr_templates = [
+            {
+                "filename": "FIR_2026_049.pdf",
+                "extracted_text": "FIRST INFORMATION REPORT (Under Section 154 Cr.P.C.)\nDistrict: Mysore | Year: 2026\nComplainant reports that on 2026-06-02 at approximately 10:30 AM, a severe assault incident was observed at Lashkar Circle. The suspect identified as Anil Gowda, aged approximately 30, affiliated with the Koli Gang, was seen driving a black SUV with license plate KA-09-M-9844. Contact suspect via active registry +91 94480-12345.",
+                "parsed_entities": json.dumps({
+                    "suspect": "Anil Gowda",
+                    "crime_type": "Assault",
+                    "location": "Lashkar Police Station, Mysore",
+                    "date": "2026-06-02",
+                    "vehicle_license": "KA-09-M-9844",
+                    "phone_contact": "+91 94480-12345"
+                })
+            },
+            {
+                "filename": "COMPLAINT_STATEMENT_IND_082.pdf",
+                "extracted_text": "STATEMENT OF COMPLAINT REGISTERED AT INDIRANAGAR PS\nComplainant states that on 2026-05-18, their online banking details were compromised leading to an unauthorized transfer of INR 45,000 to SBI A/C 984451XXXX. Investigations point towards a repeat cyber offender Vijay Naik, suspected coordinator of Bangalore Urban fraud rings.",
+                "parsed_entities": json.dumps({
+                    "suspect": "Vijay Naik",
+                    "crime_type": "Fraud",
+                    "location": "Indiranagar, Bangalore",
+                    "date": "2026-05-18",
+                    "vehicle_license": "None Listed",
+                    "phone_contact": "SBI A/C 984451XXXX"
+                })
+            }
+        ]
+        for t in ocr_templates:
+            doc = OcrDocument(filename=t['filename'], extracted_text=t['extracted_text'], parsed_entities=t['parsed_entities'])
+            db.session.add(doc)
+        db.session.commit()
+
         print("Database Seed Completed Successfully! 10,000+ crimes generated.")
 
 if __name__ == '__main__':

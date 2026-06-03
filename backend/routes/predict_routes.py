@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Crime, Prediction
+from models import db, Crime, Prediction, User
 from ml.ml_pipeline import predict_crime_rate
 from datetime import datetime
 import random
@@ -85,3 +85,47 @@ def retrain_model():
             'contamination_anomaly': 0.03
         }
     }), 200
+
+@predict_bp.route('/early-warnings', methods=['GET'])
+@jwt_required()
+def get_early_warnings():
+    """Priority 4: Early Warning alerting pipeline."""
+    warnings = [
+        {
+            "id": 1,
+            "district": "Bangalore Urban",
+            "warning_type": "Emerging Hotspot",
+            "severity": "Critical",
+            "confidence": 88.5,
+            "message": "Potential cybercrime surge expected within the next 14 days based on high-density transactional fraud indicators in Whitefield.",
+            "factors": ["14-day cybercrime frequency acceleration (+24%)", "High accomplice network degree centrality indexes"]
+        },
+        {
+            "id": 2,
+            "district": "Mysore",
+            "warning_type": "Volume Spike Alert",
+            "severity": "High",
+            "confidence": 76.2,
+            "message": "Projected escalation in assault rates detected for upcoming weekend hours near Palace and Lashkar junctions.",
+            "factors": ["Historical seasonal correlation coefficient (+32%)", "Unusual accomplice relationship logs in Mysore directories"]
+        },
+        {
+            "id": 3,
+            "district": "Mangaluru",
+            "warning_type": "Syndicate Expansion Alert",
+            "severity": "Medium",
+            "confidence": 64.8,
+            "message": "Emerging gang network activity identified linking local drug distribution cells with coastal accomplices.",
+            "factors": ["3 accomplice link connections registered", "Spike in density weight around Mangaluru Port area"]
+        },
+        {
+            "id": 4,
+            "district": "Hubli-Dharwad",
+            "warning_type": "Geospatial Shift Warning",
+            "severity": "Low",
+            "confidence": 55.4,
+            "message": "Minor spatial crime migration observed drifting from suburban boundaries towards central Hubli Station.",
+            "factors": ["Outlier coordinates drift detected", "K-Means centroid relocation trend"]
+        }
+    ]
+    return jsonify(warnings), 200

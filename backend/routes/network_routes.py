@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from models import db, Criminal, CrimeRelationship
+from models import db, Criminal, CrimeRelationship, NetworkEntity
 
 try:
     import networkx as nx
@@ -70,7 +70,29 @@ def get_criminal_network():
             'gang': c.gang_affiliation,
             'crimes_committed': c.crime_history_count,
             'risk_score': c.risk_score,
-            'centrality_index': centrality_map.get(c.criminal_id, 0.0)
+            'centrality_index': centrality_map.get(c.criminal_id, 0.0),
+            'type': 'Criminal'
+        })
+        
+    # Fetch connected network entities (Priority 6)
+    entities = NetworkEntity.query.filter(NetworkEntity.criminal_owner_id.in_(list(criminal_ids))).all()
+    entity_nodes = []
+    entity_links = []
+    for e in entities:
+        entity_node_id = f"entity_{e.entity_id}"
+        entity_nodes.append({
+            'id': entity_node_id,
+            'name': e.value,
+            'type': e.entity_type,
+            'gang': 'None',
+            'crimes_committed': 0,
+            'risk_score': 15.0,
+            'centrality_index': 0.0
+        })
+        entity_links.append({
+            'source': e.criminal_owner_id,
+            'target': entity_node_id,
+            'type': f"Owns {e.entity_type}"
         })
         
     # Expose gangs lists for filter toggles
@@ -78,8 +100,8 @@ def get_criminal_network():
     gang_list = [g[0] for g in gangs if g[0] and g[0] != 'None']
     
     return jsonify({
-        'nodes': nodes,
-        'links': valid_links,
+        'nodes': nodes + entity_nodes,
+        'links': valid_links + entity_links,
         'available_gangs': gang_list
     }), 200
 

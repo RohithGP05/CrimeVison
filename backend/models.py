@@ -116,3 +116,40 @@ class Prediction(db.Model):
             'predicted_crime_rate': self.predicted_crime_rate,
             'risk_level': self.risk_level
         }
+
+class NetworkEntity(db.Model):
+    """Priority 6: Entity nodes connected to suspects."""
+    __tablename__ = 'network_entities'
+    
+    entity_id = db.Column(db.Integer, primary_key=True)
+    entity_type = db.Column(db.String(30), nullable=False) # Phone Number, Vehicle, Address, Bank Account, Case, Gang
+    value = db.Column(db.String(100), nullable=False)
+    criminal_owner_id = db.Column(db.Integer, db.ForeignKey('criminals.criminal_id'), nullable=False)
+    
+    def to_dict(self):
+        return {
+            'entity_id': self.entity_id,
+            'entity_type': self.entity_type,
+            'value': self.value,
+            'owner_id': self.criminal_owner_id
+        }
+
+class OcrDocument(db.Model):
+    """Priority 11: Stored evidence and extracted OCR profiles."""
+    __tablename__ = 'ocr_documents'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    extracted_text = db.Column(db.Text, nullable=False)
+    parsed_entities = db.Column(db.Text, nullable=False) # JSON string of parsed names, dates, items
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'text': self.extracted_text,
+            'entities': json.loads(self.parsed_entities),
+            'date': self.created_at.isoformat() if self.created_at else None
+        }
